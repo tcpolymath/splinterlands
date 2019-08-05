@@ -1,0 +1,48 @@
+# moves all Splinterlands cards from one account to another
+from beem import Steem
+from beem.instance import set_shared_steem_instance
+from beem.nodelist import NodeList
+import time
+import requests
+import json
+
+nodes = NodeList()
+nodes.update_nodes()
+steem = Steem(node=nodes.get_nodes())
+set_shared_steem_instance(steem)
+steem.wallet.unlock(YOUR BEEMPY WALLET PASSWORD)
+receiver = "ACCOUNT NAME TO SEND TO"
+userlist = [LIST OF ACCOUNT NAMES TO SEND FROM]
+
+def send_cards(sender, user, cardlist):
+        while len(cardlist) > 50:
+                newlist = cardlist[:50]
+                steem.custom_json('sm_gift_cards', {'to': user, 'cards': newlist}, required_auths=[sender])
+                cardlist = cardlist[50:]
+                time.sleep(3)
+        steem.custom_json('sm_gift_cards', {'to': user, 'cards': cardlist}, required_auths=[sender])
+
+def get_cards(account):
+        cnt = 0
+        response = ""
+        while str(response) != '<Response [200]>' and cnt < 10:
+                response = requests.get("https://steemmonsters.com/cards/collection/%s" % account)
+                if str(response) != '<Response [200]>':
+                        time.sleep(2)
+                cnt += 1
+        if cnt == 10:
+                print "No API response"
+                return 0
+        details = response.json()
+        print "got cards for %s" % account
+        return details['cards']     
+
+for user in userlist:
+        cardlist = []
+        for card in get_cards(user):
+                if card["player"] == user:
+                        cardlist.append(card["uid"])    
+        send_cards(user, receiver, cardlist)
+        print "sent for %s" % user
+
+
